@@ -1,4 +1,5 @@
 from cProfile import label
+from cmath import sqrt
 import enum
 import numpy as np
 import collections.abc
@@ -30,8 +31,9 @@ class Linear:
         # TODO: Set out_dims to the shape of the output of this linear layer as a numpy array e.g. self.out_dims = np.array([x, y])
         self.out_dims = (self.num_data, num_out_features) # TODO: Sid to verify
         # TODO: Declare the weight matrix. Be careful how you initialize the matrix.
-        # self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features) * 0.01  # col = no of features # passed for 1a,b
-        self.W = np.random.rand(self.num_data, num_out_features, self.num_in_features) * 0.01 # works for 1
+        self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features) * 0.01  # col = no /of features # passed for 1a,b
+        # self.W = np.random.rand(self.num_data, num_out_features, self.num_in_features) * 0.01 # works for 1
+        # self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features)*np.math.sqrt(2/self.num_in_features) # try
 
     def forward(self):
         """This function computes XW"""
@@ -91,11 +93,10 @@ class Relu:
 
     def backward(self, dwnstrm):
         # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind
-        input_grad = dwnstrm.copy()
-        input_grad[input_grad < 0] = 0
-        input_grad[input_grad > 0] = 1 
         # hand this gradient backward to the layer behind
-        self.in_layer.backward(input_grad)
+        pass_back = np.zeros_like(self.in_array)
+        pass_back[self.in_array > 0] = 1
+        self.in_layer.backward(np.multiply(dwnstrm, pass_back))
         pass
     pass
 
@@ -109,9 +110,9 @@ class Bias:
         self.out_dims = in_layer.out_dims # TODO Sid to verify
         # TODO: Declare the weight matrix. Be careful how you initialize the matrix.
         # self.W = np.ones(shape=(1, self.num_in_features))*0.5 # TODO: Sid to verify
-        # self.W = np.ones((self.num_data, self.num_in_features))
-        self.W = np.random.rand(self.num_data, self.num_in_features) * 0.01 # pass 1
-        # self.W = np.zeros((self.num_data, self.num_in_features))   # pass 1
+        # self.W = np.ones((self.num_data, self.num_in_features)) # pass 1
+        # self.W = np.random.rand(self.num_data, self.num_in_features) * 0.01 # pass 1
+        self.W = np.zeros((self.num_data, self.num_in_features))   # pass 1
 
 
     def forward(self):

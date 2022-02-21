@@ -158,5 +158,5 @@ def generate_default_data(module_name):
     func_name = module_name.replace("sol_", "data_")
     return globals()[func_name]()
     
-if __name__ == "__main__":
-    print(generate_default_data("sol_1a"))
+# if __name__ == "__main__":
+#     generate_data("sol_1a")

@@ -53,7 +53,7 @@ class Trainer:
         #TODO: use the appropriate loss function here
         self.loss_layer = layers.SquareLoss(self.network.get_output_layer(), y)
         #TODO: construct the optimizer class here. You can retrieve all modules with parameters (thus need to be optimized be the optimizer) by "network.get_modules_with_parameters()"
-        self.optim = layers.SGDSolver(0.0004, self.network.get_modules_with_parameters())
+        self.optim = layers.SGDSolver(0.04, self.network.get_modules_with_parameters())
         return self.data_layer, self.network, self.loss_layer, self.optim
     
     def train_step(self):
@@ -72,7 +72,7 @@ class Trainer:
 
     def get_num_iters_on_public_test(self):
         #TODO: adjust this number to how much iterations you want to train on the public test dataset for this problem.
-        return 3000
+        return 1000
     
     def train(self, num_iter):
         train_losses = []
@@ -101,30 +101,20 @@ def main(test=False):
         y_test = dataset["test"][1]
 
         trainer.setup(dataset["train"])
-        iter = 2000
-        trainer.train_step()
-        # loss = trainer.train(iter)
-        # # print(loss)
-        # ran = [i for i in range(1, iter+1)]
-        # plt.plot(ran, loss)
-        # plt.show()
-        # print(loss[-1])
+        iter = 15000
+        # trainer.train_step()
+        loss = trainer.train(iter)
+        print(loss)
+        ran = [i for i in range(1, iter+1)]
+        plt.plot(ran, loss)
+        plt.show()
+        print(loss[-1])
 
         # Test results
         trainer.data_layer.set_data(dataset["test"][0])
         pred = trainer.network.forward()
         plt.plot(trainer.data_layer.data, pred)
         plt.show()
-
-        # print(trainer.network.linear.W)
-        # print(trainer.network.bias.W)
-        # print(trainer.network.linear.forward())
-        # print('------------------------------')
-        # print(trainer.network.bias.W)
-        # print('------------------------------')
-        # print(trainer.network.bias.forward())
-        # print('-------------------------------')
-        # print(trainer.loss_layer.forward())
 
     else:
         #DO NOT CHANGE THIS BRANCH! This branch is used for autograder.

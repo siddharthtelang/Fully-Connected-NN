@@ -9,7 +9,7 @@ class Network(layers.BaseNetwork):
         # you should always call __init__ first 
         super().__init__()
         #TODO: define your network architecture here
-        self.linear = layers.Linear(data_layer, 2)
+        self.linear = layers.Linear(data_layer, 10)
         self.bias = layers.Bias(self.linear)
         self.relu = layers.Relu(self.bias)
         self.linear2 = layers.Linear(self.relu, 1)
@@ -53,7 +53,7 @@ class Trainer:
         #TODO: use the appropriate loss function here
         self.loss_layer = layers.SquareLoss(self.network.get_output_layer(), y)
         #TODO: construct the optimizer class here. You can retrieve all modules with parameters (thus need to be optimized be the optimizer) by "network.get_modules_with_parameters()"
-        self.optim = layers.SGDSolver(0.004, self.network.get_modules_with_parameters())
+        self.optim = layers.SGDSolver(0.007, self.network.get_modules_with_parameters())
         return self.data_layer, self.network, self.loss_layer, self.optim
     
     def train_step(self):
@@ -72,7 +72,7 @@ class Trainer:
 
     def get_num_iters_on_public_test(self):
         #TODO: adjust this number to how much iterations you want to train on the public test dataset for this problem.
-        return 3000
+        return 5000
     
     def train(self, num_iter):
         train_losses = []
@@ -101,7 +101,7 @@ def main(test=False):
         y_test = dataset["test"][1]
 
         trainer.setup(dataset["train"])
-        iter = 2000
+        iter = 4000
         # trainer.train_step()
         loss = trainer.train(iter)
         # print(loss)
@@ -117,6 +117,7 @@ def main(test=False):
         pred = trainer.network.forward()
         plt.plot(trainer.data_layer.data, pred)
         plt.show()
+        print('Final Test loss ', (1/2 * ((pred - y_test)**2).mean()))
 
         # print(trainer.network.linear.W)
         # print(trainer.network.bias.W)

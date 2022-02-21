@@ -31,6 +31,7 @@ class Linear:
         # TODO: Set out_dims to the shape of the output of this linear layer as a numpy array e.g. self.out_dims = np.array([x, y])
         self.out_dims = (self.num_data, num_out_features) # TODO: Sid to verify
         # TODO: Declare the weight matrix. Be careful how you initialize the matrix.
+        np.random.seed()
         self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features) * 0.01  # col = no /of features # passed for 1a,b
         # self.W = np.random.rand(self.num_data, num_out_features, self.num_in_features) * 0.01 # works for 1
         # self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features)*np.math.sqrt(2/self.num_in_features) # try

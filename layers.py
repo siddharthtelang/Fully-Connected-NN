@@ -1,6 +1,7 @@
 from cProfile import label
 from cmath import sqrt
 import enum
+from turtle import down
 import numpy as np
 import collections.abc
 
@@ -162,36 +163,61 @@ class SquareLoss:
 
     pass
 
-# class Sigmoid:
-#     def __init__(self, in_layer):
-#         self.in_layer = in_layer
-#     def forward(self):
-#         self.in_array = self.in_layer.forward()
-#         # TODO: Compute the result of sigmoid function, and store it as self.out_array. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
-#         self.out_array =
-#         return self.out_array
-#     def backward(self, dwmstrm):
-#         # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
-#         input_grad = 
-#         self.in_layer.backward(input_grad)
+class Sigmoid:
+    def __init__(self, in_layer):
+        self.in_layer = in_layer
+    def forward(self):
+        self.in_array = self.in_layer.forward()
 
-# class CrossEntropy:
-#     def __init__(self, in_layer, labels):
-#         self.in_layer = in_layer
-#         self.labels = labels
-#         pass
-#     def set_data(self, labels):
-#         self.labels = labels
-#     def forward(self):
-#         self.in_array = self.in_layer.forward()
-#         self.num_data =self.in_array.shape[0]
-#        # TODO: Compute the result of cross entropy loss, and store it as self.out_array
-#         self.out_array = 
-#         return self.out_array
-#     def backward(self):
-#         # TODO: Compute grad of loss with respect to inputs, and hand this gradient backward to the layer behind
-#         input_grad =
-#         self.in_layer.backward(input_grad)
+        # TODO: Compute the result of sigmoid function, and store it as self.out_array. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
+        self.out_array = np.zeros_like(self.in_array)
+        for i in range(self.in_array.shape[0]):
+            if self.in_array[i][0] > 0:
+                self.out_array[i][0] = 1 / (1 + np.exp(-self.in_array[i][0]))
+            elif self.in_array[i][0] < 0:
+                self.out_array[i][0] = np.exp(self.in_array[i][0]) / (1 + np.exp(self.in_array[i][0]))
+        return self.out_array
+
+    def backward(self, dwmstrm):
+        # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
+        input_grad = np.zeros_like(dwmstrm)
+        for i in range(dwmstrm.shape[0]):
+            if (self.in_array[i][0] > 0):
+                input_grad[i][0] = np.exp(-self.in_array[i][0]) / (np.power(1 + np.exp(-self.in_array[i][0]), 2))
+            elif self.in_array[i][0] < 0:
+                input_grad[i][0] = np.exp(self.in_array[i][0]) / (np.power(1 + np.exp(self.in_array[i][0]), 2))
+        self.in_layer.backward(np.multiply(input_grad, dwmstrm))
+
+class CrossEntropy:
+    def __init__(self, in_layer, labels):
+        self.in_layer = in_layer
+        self.labels = labels
+        pass
+    
+    def set_data(self, labels):
+        self.labels = labels
+    
+    def forward(self):
+        self.in_array = self.in_layer.forward()
+        self.num_data =self.in_array.shape[0]
+       
+       # TODO: Compute the result of cross entropy loss, and store it as self.out_array
+        self.out_array = []
+        eps = 1e-10
+        for y_pred, y in zip(self.in_array, self.labels):
+            self.out_array.append( y * (np.log(eps + y_pred)) + (1 - y)*(np.log(eps + 1 - y_pred)))
+        return (-np.sum(np.asarray(self.out_array)) / self.num_data)
+
+        # return np.sum(np.nan_to_num(-self.labels*np.log(self.in_array)-(1-self.labels)*np.log(1-self.in_array)))
+    
+    def backward(self):
+        # TODO: Compute grad of loss with respect to inputs, and hand this gradient backward to the layer behind
+        input_grad = np.zeros(shape=(self.num_data, 1))
+        i = 0
+        for y, o in zip(self.labels, self.in_array):
+            input_grad[i][0] = (o-y) / (o*(1-o)+1)
+            i+=1
+        self.in_layer.backward(input_grad)
 
 # class CrossEntropySoftMax:
 #     """Given a matrix of logits (one logit vector per row), and a vector labels, 

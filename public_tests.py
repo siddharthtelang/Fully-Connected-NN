@@ -191,7 +191,7 @@ def test_gradients(module_name, test_data, test_answers):
 
 if __name__ == "__main__":
 
-  solution_directory = '.'
+  solution_directory = 'solutions'
   #NB: this assumes tests are defined in global namespace and names prefixed with "test_"
   tests = {k:v for k,v in globals().items() if "test_" in k and callable(v)}
   run_tests(solution_directory, tests, answers)

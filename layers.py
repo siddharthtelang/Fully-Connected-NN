@@ -1,7 +1,3 @@
-from cProfile import label
-from cmath import sqrt
-import enum
-from turtle import down
 import numpy as np
 import collections.abc
 
@@ -19,7 +15,7 @@ class Data:
         return self.data
     def backward(self, dwnstrm):
         pass
-    
+
 class Linear:
     """Given an input matrix X, with one feature vector per row, 
     this layer computes XW, where W is a linear operator."""
@@ -33,7 +29,7 @@ class Linear:
         self.out_dims = (self.num_data, num_out_features) # TODO: Sid to verify
         # TODO: Declare the weight matrix. Be careful how you initialize the matrix.
         np.random.seed()
-        self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features) * 0.01  # col = no /of features # passed for 1a,b
+        self.W = np.random.randn(self.num_in_features, num_out_features)  / np.sqrt(self.num_in_features)  # col = no /of features # passed for 1a,b
         # self.W = np.random.rand(self.num_data, num_out_features, self.num_in_features) * 0.01 # works for 1
         # self.W = np.random.randn(self.num_data, num_out_features, self.num_in_features)*np.math.sqrt(2/self.num_in_features) # try
 
@@ -47,10 +43,7 @@ class Linear:
         # TODO: Compute the result of linear layer with weight W, and store it as self.out_array
         # self.out_array = np.dot(self.in_array, self.W.T) # TODO Sid to verify
 
-        outarray = []
-        for i, temp in enumerate(self.W):
-            outarray.append(np.dot(self.in_array[i], temp.T))
-        self.out_array = np.asarray(outarray)
+        self.out_array = self.in_array @ self.W
 
         return self.out_array
 
@@ -58,17 +51,17 @@ class Linear:
         # TODO: Compute the gradient of the output with respect to W, and store it as G
         
         batches = dwnstrm.shape[0]
-        G, input_grad = [], []
+        G = []
+        input_grad = np.dot(dwnstrm, self.W.T)
         if (len(dwnstrm.shape) != 3):
             dwnstrm = dwnstrm.reshape(batches, 1, dwnstrm.shape[1])
         temp_in_array = self.in_array.reshape(self.in_array.shape[0], 1, self.in_array.shape[1])
         for i, temp in enumerate(dwnstrm):
-            G.append(np.dot(temp.T, temp_in_array[i]))
-            input_grad.append(np.dot(temp, self.W[i]))
-
-        input_grad = np.asarray(input_grad) # array batch size x 1 x features
-        input_grad = input_grad.reshape(input_grad.shape[0], input_grad.shape[2]) # reshape to batch size x features
+            G.append(np.dot(temp_in_array[i].T, temp))
         self.G = np.asarray(G)
+
+        # import ipdb; 
+        # ipdb.set_trace()
 
         # self.G = np.dot(dwnstrm.T, self.in_array)
         # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind
@@ -114,7 +107,7 @@ class Bias:
         # self.W = np.ones(shape=(1, self.num_in_features))*0.5 # TODO: Sid to verify
         # self.W = np.ones((self.num_data, self.num_in_features)) # pass 1
         # self.W = np.random.rand(self.num_data, self.num_in_features) * 0.01 # pass 1
-        self.W = np.zeros((self.num_data, self.num_in_features))   # pass 1
+        self.W = np.zeros((1, self.num_in_features))   # pass 1
 
 
     def forward(self):
@@ -126,9 +119,14 @@ class Bias:
     def backward(self, dwnstrm):
         # TODO: Compute the gradient of the output with respect to W, and store it as G
         # self.G = np.sum(dwnstrm, axis=0)
-        self.G = dwnstrm
-        # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind
         input_grad = dwnstrm
+
+        self.G = dwnstrm.reshape(dwnstrm.shape[0], 1, dwnstrm.shape[1])
+        # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind
+        # print('G', self.G.shape)
+        # print('W - ', self.W.shape)
+        # print('dwn - ', dwnstrm.shape)
+        # print('input grad ', input_grad.shape)
         # hand this gradient backward to the layer behind
         self.in_layer.backward(input_grad)
         pass
@@ -156,7 +154,7 @@ class SquareLoss:
     def backward(self):
         """Gradient is (1/M) (X-Y), where N is the number of training samples"""
         # TODO: Compute grad of output with respect to inputs, and hand this gradient backward to the layer behind
-        self.pass_back =  (self.in_array - self.labels) / self.num_data
+        self.pass_back =  (self.in_array - self.labels) #/ self.num_data
         # hand this gradient backward to the layer behind
         self.in_layer.backward(self.pass_back)
         pass
@@ -206,43 +204,49 @@ class CrossEntropy:
         eps = 1e-10
         for y_pred, y in zip(self.in_array, self.labels):
             self.out_array.append( y * (np.log(eps + y_pred)) + (1 - y)*(np.log(eps + 1 - y_pred)))
-        return (-np.sum(np.asarray(self.out_array)) / self.num_data)
-
-        # return np.sum(np.nan_to_num(-self.labels*np.log(self.in_array)-(1-self.labels)*np.log(1-self.in_array)))
+        return (-np.sum(np.asarray(self.out_array)))# / self.num_data)
     
     def backward(self):
         # TODO: Compute grad of loss with respect to inputs, and hand this gradient backward to the layer behind
         input_grad = np.zeros(shape=(self.num_data, 1))
         i = 0
         for y, o in zip(self.labels, self.in_array):
-            input_grad[i][0] = (o-y) / (o*(1-o)+1)
+            dr = (o*(1-o))
+            if dr == 0: dr+=1
+            input_grad[i][0] = (o-y) / dr
             i+=1
         self.in_layer.backward(input_grad)
 
-# class CrossEntropySoftMax:
-#     """Given a matrix of logits (one logit vector per row), and a vector labels, 
-#     compute the cross entropy of the softmax.
-#     The labels must be a 1d vector"""
-#     def __init__(self, in_layer, labels=None):
-#         self.in_layer = in_layer
-#         if labels is not None: # you don't have to pass labels if it is not known at class construction time. (e.g. if you plan to do mini-batches)
-#             self.set_data(labels)
+class CrossEntropySoftMax:
+    """Given a matrix of logits (one logit vector per row), and a vector labels, 
+    compute the cross entropy of the softmax.
+    The labels must be a 1d vector"""
+    def __init__(self, in_layer, labels=None):
+        self.in_layer = in_layer
+        if labels is not None: # you don't have to pass labels if it is not known at class construction time. (e.g. if you plan to do mini-batches)
+            self.set_data(labels)
             
-#     def set_data(self,  labels):
-#         self.labels = labels
-#         self.ones_hot = np.zeros((labels.shape[0], labels.max()+1))
-#         self.ones_hot[np.arange(labels.shape[0]),labels] = 1
+    def set_data(self,  labels):
+        self.labels = labels
+        self.ones_hot = np.zeros((labels.shape[0], labels.max()+1))
+        self.ones_hot[np.arange(labels.shape[0]),labels] = 1
 
-#     def forward(self):
-#         self.in_array = self.in_layer.forward()
-#         self.num_data = self.in_array.shape[0]
-#         # TODO: Compute the result of softmax + cross entropy, and store it as self.out_array. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
-#         self.out_array= 
-#         return self.out_array
-#     def backward(self):
-#         # TODO: Compute grad of loss with respect to inputs, and hand this gradient backward to the layer behind. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
-#         input_grad = 
-#         self.in_layer.backward(input_grad)
+    def forward(self):
+        eps = 1e-10
+        self.in_array = self.in_layer.forward()
+        self.num_data = self.in_array.shape[0]
+        c = np.max(self.in_array,axis = 1).reshape((-1,1))
+        log_prob = np.exp(self.in_array - c)
+        nrmlz = np.sum(log_prob,axis = 1).reshape((-1,1))
+        self.prob = log_prob / nrmlz
+        # TODO: Compute the result of softmax + cross entropy, and store it as self.out_array. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
+        self.out_array = np.sum(-1*np.log(eps + np.sum(self.prob * self.ones_hot,axis = 1)))
+        return self.out_array
+
+    def backward(self):
+        # TODO: Compute grad of loss with respect to inputs, and hand this gradient backward to the layer behind. Be careful! Don't exponentiate an arbitrary positive number as it may overflow. 
+        input_grad = self.prob - self.ones_hot
+        self.in_layer.backward(input_grad)
         
 class SGDSolver:
     def __init__(self, lr, modules):
@@ -258,17 +262,18 @@ class SGDSolver:
                 print('shape of weight = ', m.W.shape)
                 print('shape of gradient = ', m.G.shape)
                 print('Weight vector-')
-                print(m.W)
+                # print(m.W)
                 # print('Gradient vector')
                 # print(m.G)
                 print('To substract from weight vector')
-                print((self.lr*(np.sum(m.G, axis = 0))))
+                # print((self.lr*(np.sum(m.G, axis = 0))))
                 # if (m.G.shape == m.W.shape):
                 #     if (dbg): print(self.lr*(m.G))
                 #     m.W -= (self.lr*(m.G))
                 # else:
-            
-            m.W -= (self.lr*(np.sum(m.G, axis = 0)))
+            # import ipdb; 
+            # ipdb.set_trace()
+            m.W -= (self.lr*(np.mean(m.G, axis = 0)))
             
             if (dbg): print('Final')
             if (dbg): print(m.W)

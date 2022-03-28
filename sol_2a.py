@@ -5,24 +5,44 @@ import data_generators
 
 class Network(layers.BaseNetwork):
     #TODO: you might need to pass additional arguments to init for prob 2, 3, 4 and mnist
-    def __init__(self, data_layer):
+    def __init__(self, data_layer, myParams=None, params=None):
         # you should always call __init__ first 
         super().__init__()
         #TODO: define your network architecture here
-        self.linear = layers.Linear(data_layer, 10)
-        self.bias = layers.Bias(self.linear)
-        self.relu = layers.Relu(self.bias)
-        self.linear2 = layers.Linear(self.relu, 1)
-        self.bias2 = layers.Bias(self.linear2)
-        # For prob 3 and 4:
-        # layers.ModuleList can be used to add arbitrary number of layers to the network
-        # e.g.:
-        # self.MY_MODULE_LIST = layers.ModuleList()
-        # for i in range(N):
-        #     self.MY_MODULE_LIST.append(layers.Linear(...))
+
+        self.module_list = layers.ModuleList()
+        if params is not None:
+            hidden_units = params["hidden_units"]
+            hidden_layers = params["hidden_layers"]
+            self.module_list.append(data_layer)
+
+            for i in range(hidden_layers):
+                self.module_list.append(layers.Linear(self.module_list[-1], hidden_units))
+                self.module_list.append(layers.Bias(self.module_list[-1]))
+                self.module_list.append(layers.Relu(self.module_list[-1]))
+
+            self.module_list.append(layers.Linear(self.module_list[-1],1))
+            self.module_list.append(layers.Bias(self.module_list[-1]))
+            self.set_output_layer(self.module_list[-1])
         
-        #TODO: always call self.set_output_layer with the output layer of this network (usually the last layer)
-        self.set_output_layer(self.bias2)
+        elif myParams is not None:
+            self.module_list.append(data_layer)
+            for units in myParams:
+                self.module_list.append(layers.Linear(self.module_list[-1], units))
+                self.module_list.append(layers.Bias(self.module_list[-1]))
+                self.module_list.append(layers.Relu(self.module_list[-1]))
+    
+            self.module_list.append(layers.Linear(self.module_list[-1],1))
+            self.module_list.append(layers.Bias(self.module_list[-1]))
+            self.set_output_layer(self.module_list[-1])
+
+        else:
+            self.linear = layers.Linear(data_layer, 16)
+            self.bias = layers.Bias(self.linear)
+            self.relu = layers.Relu(self.bias)
+            self.linear2 = layers.Linear(self.relu, 1)
+            self.bias2 = layers.Bias(self.linear2)
+            self.set_output_layer(self.bias2)
 
 class Trainer:
     def __init__(self):
@@ -38,8 +58,8 @@ class Trainer:
         '''
         hidden_units = parameters["hidden_units"] #needed for prob 2, 3, 4, mnist
         hidden_layers = parameters["hidden_layers"] #needed for prob 3, 4, mnist
-        #TODO: construct your network here
-        network = Network(data_layer=data_layer)
+        
+        network = Network(data_layer=data_layer, params=parameters)
         return network
     
     def setup(self, training_data):
@@ -49,11 +69,15 @@ class Trainer:
         #TODO: define input data layer
         self.data_layer = layers.Data(x)
         #TODO: construct the network. you don't have to use define_network.
-        self.network = Network(self.data_layer)
+        myLayers = [16]
+        params = dict()
+        params["hidden_units"] = 16
+        params["hidden_layers"] = 1
+        self.network = Network(self.data_layer, myParams=myLayers, params=None)
         #TODO: use the appropriate loss function here
         self.loss_layer = layers.SquareLoss(self.network.get_output_layer(), y)
         #TODO: construct the optimizer class here. You can retrieve all modules with parameters (thus need to be optimized be the optimizer) by "network.get_modules_with_parameters()"
-        self.optim = layers.SGDSolver(0.007, self.network.get_modules_with_parameters())
+        self.optim = layers.SGDSolver(0.07, self.network.get_modules_with_parameters())
         return self.data_layer, self.network, self.loss_layer, self.optim
     
     def train_step(self):
@@ -72,7 +96,7 @@ class Trainer:
 
     def get_num_iters_on_public_test(self):
         #TODO: adjust this number to how much iterations you want to train on the public test dataset for this problem.
-        return 5000
+        return 25000
     
     def train(self, num_iter):
         train_losses = []
@@ -101,33 +125,32 @@ def main(test=False):
         y_test = dataset["test"][1]
 
         trainer.setup(dataset["train"])
-        iter = 4000
+        iter = 15000
         # trainer.train_step()
         loss = trainer.train(iter)
         # print(loss)
         ran = [i for i in range(1, iter+1)]
         plt.plot(ran, loss)
+        plt.title('Loss vs Iteration')
+        # plt.savefig('Loss 2a.png')
         plt.show()
         print(loss[-1])
 
         plt.plot(x_train, y_train)
+        plt.title('Training Data')
+        # plt.savefig('Training Data')
+        plt.show()
 
+        fig, ax = plt.subplots()
         # Test results
         trainer.data_layer.set_data(dataset["test"][0])
         pred = trainer.network.forward()
-        plt.plot(trainer.data_layer.data, pred)
+        ax.plot(trainer.data_layer.data, pred, label='Predicted')
+        ax.plot(x_test, y_test, label='Actual')
+        ax.legend()
+        # plt.savefig('2a - Actual and Predicted.png')
         plt.show()
         print('Final Test loss ', (1/2 * ((pred - y_test)**2).mean()))
-
-        # print(trainer.network.linear.W)
-        # print(trainer.network.bias.W)
-        # print(trainer.network.linear.forward())
-        # print('------------------------------')
-        # print(trainer.network.bias.W)
-        # print('------------------------------')
-        # print(trainer.network.bias.forward())
-        # print('-------------------------------')
-        # print(trainer.loss_layer.forward())
 
     else:
         #DO NOT CHANGE THIS BRANCH! This branch is used for autograder.

@@ -8,17 +8,9 @@ class Network(layers.BaseNetwork):
     def __init__(self, data_layer):
         # you should always call __init__ first 
         super().__init__()
-        #TODO: define your network architecture here
+        
         self.linear = layers.Linear(data_layer, 1)
         self.bias = layers.Bias(self.linear)
-        # For prob 3 and 4:
-        # layers.ModuleList can be used to add arbitrary number of layers to the network
-        # e.g.:
-        # self.MY_MODULE_LIST = layers.ModuleList()
-        # for i in range(N):
-        #     self.MY_MODULE_LIST.append(layers.Linear(...))
-        
-        #TODO: always call self.set_output_layer with the output layer of this network (usually the last layer)
         self.set_output_layer(self.bias)
 
 class Trainer:
@@ -50,7 +42,7 @@ class Trainer:
         #TODO: use the appropriate loss function here
         self.loss_layer = layers.SquareLoss(self.network.get_output_layer(), y)
         #TODO: construct the optimizer class here. You can retrieve all modules with parameters (thus need to be optimized be the optimizer) by "network.get_modules_with_parameters()"
-        self.optim = layers.SGDSolver(0.9, self.network.get_modules_with_parameters())
+        self.optim = layers.SGDSolver(0.01, self.network.get_modules_with_parameters())
         return self.data_layer, self.network, self.loss_layer, self.optim
     
     def train_step(self):
@@ -95,7 +87,7 @@ def main(test=False):
         y_train = dataset["train"][1]
 
         x_test = dataset["test"][0]
-        x_test = dataset["test"][1]
+        y_test = dataset["test"][1]
 
         trainer.setup(dataset["train"])
         iter = 1000
@@ -104,19 +96,23 @@ def main(test=False):
         # # print(loss)
         ran = [i for i in range(1, iter+1)]
         plt.plot(ran, loss)
+        plt.title("Loss vs iterations")
+        plt.savefig('1bloss')
         plt.show()
         print(loss[-1])
-        print('exit')
+        
+        plt.plot(x_train, y_train)
+        plt.title('Actual Function')
+        plt.savefig('1b-actual.png')
+        plt.show()
 
-        print(trainer.network.linear.W[0])
-        print(trainer.network.bias.W[1])
-        # print(trainer.network.linear.forward())
-        # print('------------------------------')
-        # print(trainer.network.bias.W)
-        # print('------------------------------')
-        # print(trainer.network.bias.forward())
-        # print('-------------------------------')
-        # print(trainer.loss_layer.forward())
+        trainer.data_layer.set_data(dataset["test"][0])
+        pred = trainer.network.forward()
+        plt.plot(trainer.data_layer.data, pred)
+        plt.title('Predicted Function')
+        plt.savefig('1a-predicted.png')
+        plt.show()
+        print('Final Test loss ', (1/2 * ((pred - y_test)**2).mean()))
 
     else:
         #DO NOT CHANGE THIS BRANCH! This branch is used for autograder.

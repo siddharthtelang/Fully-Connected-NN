@@ -5,24 +5,43 @@ import data_generators
 
 class Network(layers.BaseNetwork):
     #TODO: you might need to pass additional arguments to init for prob 2, 3, 4 and mnist
-    def __init__(self, data_layer):
+    def __init__(self, data_layer, myParams=None, params=None):
         # you should always call __init__ first 
         super().__init__()
         #TODO: define your network architecture here
-        self.linear = layers.Linear(data_layer, 5)
-        self.bias = layers.Bias(self.linear)
-        self.relu = layers.Relu(self.bias)
-        self.linear2 = layers.Linear(self.relu, 1)
-        self.bias2 = layers.Bias(self.linear2)
-        # For prob 3 and 4:
-        # layers.ModuleList can be used to add arbitrary number of layers to the network
-        # e.g.:
-        # self.MY_MODULE_LIST = layers.ModuleList()
-        # for i in range(N):
-        #     self.MY_MODULE_LIST.append(layers.Linear(...))
+        self.module_list = layers.ModuleList()
+        if params is not None:
+            hidden_units = params["hidden_units"]
+            hidden_layers = params["hidden_layers"]
+            self.module_list.append(data_layer)
+
+            for i in range(hidden_layers):
+                self.module_list.append(layers.Linear(self.module_list[-1], hidden_units))
+                self.module_list.append(layers.Bias(self.module_list[-1]))
+                self.module_list.append(layers.Relu(self.module_list[-1]))
+
+            self.module_list.append(layers.Linear(self.module_list[-1],1))
+            self.module_list.append(layers.Bias(self.module_list[-1]))
+            self.set_output_layer(self.module_list[-1])
         
-        #TODO: always call self.set_output_layer with the output layer of this network (usually the last layer)
-        self.set_output_layer(self.bias2)
+        elif myParams is not None:
+            self.module_list.append(data_layer)
+            for units in myParams:
+                self.module_list.append(layers.Linear(self.module_list[-1], units))
+                self.module_list.append(layers.Bias(self.module_list[-1]))
+                self.module_list.append(layers.Relu(self.module_list[-1]))
+    
+            self.module_list.append(layers.Linear(self.module_list[-1],1))
+            self.module_list.append(layers.Bias(self.module_list[-1]))
+            self.set_output_layer(self.module_list[-1])
+
+        else:
+            self.linear = layers.Linear(data_layer, 16)
+            self.bias = layers.Bias(self.linear)
+            self.relu = layers.Relu(self.bias)
+            self.linear2 = layers.Linear(self.relu, 1)
+            self.bias2 = layers.Bias(self.linear2)
+            self.set_output_layer(self.bias2)
 
 class Trainer:
     def __init__(self):
@@ -48,8 +67,12 @@ class Trainer:
         self.training_data = training_data
         #TODO: define input data layer
         self.data_layer = layers.Data(x)
+        myLayers = [16]
+        params = dict()
+        params["hidden_units"] = 16
+        params["hidden_layers"] = 1
         #TODO: construct the network. you don't have to use define_network.
-        self.network = Network(self.data_layer)
+        self.network = Network(self.data_layer, myParams=myLayers)
         #TODO: use the appropriate loss function here
         self.loss_layer = layers.SquareLoss(self.network.get_output_layer(), y)
         #TODO: construct the optimizer class here. You can retrieve all modules with parameters (thus need to be optimized be the optimizer) by "network.get_modules_with_parameters()"
@@ -101,19 +124,28 @@ def main(test=False):
         y_test = dataset["test"][1]
 
         trainer.setup(dataset["train"])
-        iter = 15000
+        iter = 10000
         # trainer.train_step()
         loss = trainer.train(iter)
-        print(loss)
         ran = [i for i in range(1, iter+1)]
+        plt.title('Loss vs Iterations')
         plt.plot(ran, loss)
+        plt.savefig('loss - 2b')
         plt.show()
         print(loss[-1])
 
         # Test results
         trainer.data_layer.set_data(dataset["test"][0])
         pred = trainer.network.forward()
+
+        plt.title('Actual Test Function')
+        plt.plot(x_test, y_test)
+        # plt.savefig('Actual Function 2b')
+        plt.show()
+        
+        plt.title('Predicted Function')
         plt.plot(trainer.data_layer.data, pred)
+        # plt.savefig('Predicted Function 2b')
         plt.show()
 
     else:
